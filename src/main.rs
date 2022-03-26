@@ -1,3 +1,22 @@
-fn main() {
-    println!("Hello, world!");
+use config::Config;
+use std::process::Command;
+//use serde::{Deserialize, Serialize};
+
+mod steam_apps;
+mod types;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let settings: types::ServerConfig = Config::builder()
+        .add_source(config::File::with_name("./config.toml"))
+        .add_source(config::Environment::with_prefix("STEAM"))
+        .set_default("steamcmd_location", "./steamcmd.sh")?
+        .build()?
+        .try_deserialize()?;
+
+    let steamcmd_cmd = settings.steamcmd_location;
+    let output = Command::new(steamcmd_cmd).arg("--help").output()?;
+    String::from_utf8(output.stdout)?
+        .lines()
+        .for_each(|l| println!("{}", l));
+    Ok(())
 }

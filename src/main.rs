@@ -1,5 +1,5 @@
 use config::Config;
-use std::{process::Command};
+use std::process::Command;
 
 //use serde::{Deserialize, Serialize};
 

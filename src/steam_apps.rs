@@ -1,3 +1,5 @@
+use std::{path::Path, process::Command};
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -16,13 +18,20 @@ pub struct Response {
     pub applist: AppList,
 }
 
+pub struct SteamCommand<'a> {
+    command: &'a str,
+    arg: &'a str,
+}
+
+#[derive(Default)]
 pub struct Client {
     url: String,
+    executable: String,
 }
 
 impl Client {
-    pub fn new(url: String) -> Self {
-        Client { url }
+    pub fn new(url: String, executable: String) -> Self {
+        Client { url, executable }
     }
 
     pub async fn generate_applist<W: std::io::Write>(&self, w: &mut W) -> anyhow::Result<()> {
@@ -50,19 +59,28 @@ impl Client {
 
         Ok(app)
     }
+
+    pub fn run(&self, commands: &Vec<SteamCommand>) -> anyhow::Result<String> {
+        let mut p = Command::new(&self.executable);
+        for c in commands {
+            p.arg(c.command).arg(c.arg);
+        }
+        let output = p.output()?;
+
+        return Ok(String::from_utf8(output.stdout)?);
+    }
 }
 
 #[cfg(test)]
 mod test {
     use std::fs::File;
-    use std::io::{Read};
+    use std::io::Read;
     use std::path::Path;
-    
 
     use super::*;
     use anyhow::Ok;
     use mockito::mock;
-    use tempfile::{NamedTempFile};
+    use tempfile::NamedTempFile;
 
     //static test_body: &'static str = r#"{ "applist": { "apps": [ { "appid": 612440, "name": "The Cable Center - Virtual Archive" }, { "appid": 612470, "name": "Bio Inc. Redemption" }, { "appid": 612480, "name": "Arma 3 DLC Bundle 2" } ] } }"#;
 
@@ -75,7 +93,7 @@ mod test {
         let mut output_file = NamedTempFile::new()?;
         let mut output_file2 = output_file.reopen()?;
 
-        let client = Client::new(mockito::server_url());
+        let client = Client::new(mockito::server_url(), String::from(""));
         {
             client
                 .generate_applist::<File>(&mut output_file.as_file_mut())
@@ -96,7 +114,7 @@ mod test {
     #[test]
     fn test_search_found() -> Result<(), anyhow::Error> {
         let mut input = File::open(Path::new("./test_data/applist.json"))?;
-        let client = Client::new("https://example.com".into());
+        let client = Client::new("https://example.com".into(), String::from(""));
 
         let answer = client.search(&mut input, String::from("Arma 3"))?;
 
@@ -115,12 +133,24 @@ mod test {
     #[test]
     fn test_search_not_found() -> Result<(), anyhow::Error> {
         let mut input = File::open(Path::new("./test_data/applist.json"))?;
-        let client = Client::new("https://example.com".into());
+        let client = Client::new("https://example.com".into(), String::from(""));
 
         let answer = client.search(&mut input, String::from("Doesn't exist"))?;
 
         assert!(answer.is_none(), "Should not be an answer to the search");
 
+        Ok(())
+    }
+
+    fn test_run() -> anyhow::Result<()> {
+        let client: Client = Client::new(String::from(""), String::from("echo"));
+        let commands = vec![SteamCommand {
+            command: "hello",
+            arg: "world",
+        }];
+        let output = client.run(&commands)?;
+
+        assert_eq!(String::from("helloworld"), output);
         Ok(())
     }
 }

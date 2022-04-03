@@ -1,11 +1,13 @@
 use config::Config;
-use std::process::Command;
+use std::{process::Command};
+
 //use serde::{Deserialize, Serialize};
 
 mod steam_apps;
 mod types;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let settings: types::ServerConfig = Config::builder()
         .add_source(config::File::with_name("./config.toml"))
         .add_source(config::Environment::with_prefix("STEAM"))
@@ -18,5 +20,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     String::from_utf8(output.stdout)?
         .lines()
         .for_each(|l| println!("{}", l));
+
+    // let client = Client::new("https://api.steampowered.com".into());
+    // let mut output = File::create("output.json")?;
+
+    // client.generate_applist(&mut output).await?;
     Ok(())
 }

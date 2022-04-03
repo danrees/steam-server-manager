@@ -10,3 +10,7 @@ jobs:
       - run: 
           name: Cargo test
           command: "cargo test"
+workflows:
+  build:
+    jobs:
+      - test

@@ -3,6 +3,7 @@ use std::process::Command;
 
 //use serde::{Deserialize, Serialize};
 
+mod install;
 mod steam_apps;
 mod storage;
 mod types;

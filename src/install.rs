@@ -86,7 +86,7 @@ mod test {
         let output = client.run(&commands)?.wait_with_output()?;
         let output_str = String::from_utf8(output.stdout)?;
 
-        assert_eq!(String::from("helloworld"), output_str);
+        assert_eq!(String::from("hello world"), output_str.trim_end());
         Ok(())
     }
 }

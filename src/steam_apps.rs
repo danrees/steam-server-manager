@@ -10,12 +10,12 @@ pub trait AppStorage {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct App {
     pub name: String,
-    pub app_id: u32,
+    pub appid: u32,
 }
 
 impl App {
-    pub fn new(name: String, app_id: u32) -> Self {
-        App { name, app_id }
+    pub fn new(name: String, appid: u32) -> Self {
+        App { name, appid }
     }
 }
 

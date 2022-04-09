@@ -1,1 +1,9 @@
-{ "applist": { "apps": [ { "appid": 612440, "name": "The Cable Center - Virtual Archive" }, { "appid": 612470, "name": "Bio Inc. Redemption" }, { "appid": 612480, "name": "Arma 3 DLC Bundle 2" } ] } }
+{
+  "applist": {
+    "apps": [
+      { "appid": 612440, "name": "The Cable Center - Virtual Archive" },
+      { "appid": 612470, "name": "Bio Inc. Redemption" },
+      { "appid": 612480, "name": "Arma 3 DLC Bundle 2" }
+    ]
+  }
+}

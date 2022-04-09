@@ -64,7 +64,7 @@ mod test {
 
         let path = Path::new(dir).join(app_name).with_extension("json");
 
-        fs::write(path, r#"{"name": "test-app", "app_id": 1}"#)?;
+        fs::write(path, r#"{"name": "test-app", "appid": 1}"#)?;
 
         let storage = FileStorage::new(dir);
 

@@ -4,6 +4,7 @@ use std::process::Command;
 //use serde::{Deserialize, Serialize};
 
 mod steam_apps;
+mod storage;
 mod types;
 
 #[tokio::main]

@@ -1,6 +1,8 @@
 use anyhow::Result;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
+
 use serde::{Deserialize, Serialize};
+//use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct App {
@@ -46,15 +48,24 @@ impl Client {
         Ok(())
     }
 
-    pub fn search<R: std::io::Read>(&self, r: &mut R, name: String) -> anyhow::Result<Option<App>> {
-        let matcher = Regex::new(&name)?;
+    pub fn search<R: std::io::Read>(
+        &self,
+        r: &mut R,
+        name: &str,
+        case_insensitive: bool,
+    ) -> anyhow::Result<Vec<App>> {
+        //let matcher = Regex::new(&name)?;
+        let matcher = RegexBuilder::new(name)
+            .case_insensitive(case_insensitive)
+            .build()?;
         //let app_file = File::open(&self.app_list_location)?;
         let apps: Response = serde_json::from_reader(r)?;
         let app = apps
             .applist
             .apps
             .into_iter()
-            .find(|a| matcher.is_match(a.name.as_str()));
+            .filter(|a| matcher.is_match(a.name.as_str()))
+            .collect();
 
         Ok(app)
     }
@@ -105,16 +116,10 @@ mod test {
         let mut input = File::open(Path::new("./test_data/applist.json"))?;
         let client = Client::new("https://example.com".into());
 
-        let answer = client.search(&mut input, String::from("Arma 3"))?;
+        let answer = client.search(&mut input, "Arma 3", false)?;
 
-        assert!(answer.is_some(), "Should be an answer to the search");
-        if let Some(app) = answer {
-            assert_eq!(
-                String::from("Arma 3 DLC Bundle 2"),
-                app.name,
-                "did not find the correct result"
-            )
-        }
+        assert_eq!(answer.len(), 1, "Should be one answer to the search");
+        assert_eq!(answer.get(0).unwrap().name, "Arma 3 DLC Bundle 2");
 
         Ok(())
     }
@@ -124,9 +129,9 @@ mod test {
         let mut input = File::open(Path::new("./test_data/applist.json"))?;
         let client = Client::new("https://example.com".into());
 
-        let answer = client.search(&mut input, String::from("Doesn't exist"))?;
+        let answer = client.search(&mut input, "Doesn't exist", false)?;
 
-        assert!(answer.is_none(), "Should not be an answer to the search");
+        assert_eq!(answer.len(), 0, "Should not be an answer to the search");
 
         Ok(())
     }

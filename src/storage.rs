@@ -1,4 +1,7 @@
-use crate::steam_apps::{App, AppStorage};
+use crate::{
+    install::{Server, ServerStorage},
+    steam_apps::App,
+};
 use anyhow::Result;
 use std::{fs::File, path::Path};
 
@@ -12,8 +15,8 @@ impl FileStorage {
     }
 }
 
-impl AppStorage for FileStorage {
-    fn save(&self, app: &App) -> Result<()> {
+impl ServerStorage for FileStorage {
+    fn save(&self, app: &Server) -> Result<()> {
         let path = Path::new(&self.dir).join(&app.name).with_extension("json");
         println!("{:?}", path);
         let file = File::create(path)?;
@@ -21,9 +24,9 @@ impl AppStorage for FileStorage {
         Ok(())
     }
 
-    fn load(&self, name: &str) -> Result<App> {
+    fn load(&self, name: &str) -> Result<Server> {
         let file = File::open(Path::new(&self.dir).join(name).with_extension("json"))?;
-        let app: App = serde_json::from_reader(file)?;
+        let app: Server = serde_json::from_reader(file)?;
         Ok(app)
     }
 }
@@ -44,12 +47,12 @@ mod test {
         let dir = "./testdir";
         create_dir_all(dir)?;
         let storage = FileStorage::new(dir);
-        let app = App::new(String::from("test-app"), 1);
+        let app = Server::new(1, "test-app", "anonymous", "test-app");
 
         storage.save(&app)?;
 
         let result = File::open(Path::new(dir).join(&app.name).with_extension("json"))?;
-        let result_app: App = serde_json::from_reader(result)?;
+        let result_app: Server = serde_json::from_reader(result)?;
 
         assert_eq!(app, result_app);
         cleanup(dir);
@@ -64,7 +67,10 @@ mod test {
 
         let path = Path::new(dir).join(app_name).with_extension("json");
 
-        fs::write(path, r#"{"name": "test-app", "appid": 1}"#)?;
+        fs::write(
+            path,
+            r#"{"name": "test-app", "id": 1, "login": "anonymous" ,"install_dir": "test-app"}"#,
+        )?;
 
         let storage = FileStorage::new(dir);
 

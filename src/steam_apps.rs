@@ -2,11 +2,6 @@ use anyhow::Result;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-pub trait AppStorage {
-    fn save(&self, app: &App) -> Result<()>;
-    fn load(&self, name: &str) -> Result<App>;
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct App {
     pub name: String,

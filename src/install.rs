@@ -3,14 +3,35 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
 pub struct Client {
     steamd_cmd: String,
 }
 
-pub struct Server<'a> {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Server {
     id: u32,
-    login: &'a str,
-    install_dir: &'a str,
+    pub name: String,
+    login: String,
+    install_dir: String,
+}
+
+impl<'a> Server {
+    pub fn new(id: u32, name: &str, login: &str, install_dir: &str) -> Self {
+        return Server {
+            id,
+            name: name.into(),
+            login: login.into(),
+            install_dir: install_dir.into(),
+        };
+    }
+}
+
+pub trait ServerStorage {
+    fn save(&self, server: &Server) -> Result<()>;
+    fn load(&self, name: &str) -> Result<Server>;
 }
 
 pub struct SteamCommand<'a> {
@@ -36,7 +57,7 @@ impl Client {
     }
 
     pub fn install(&self, server: &Server, mut w: Box<dyn Write>) -> anyhow::Result<()> {
-        let install_dir = [server.install_dir];
+        let install_dir = [server.install_dir.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
         let commands = vec![
             SteamCommand {

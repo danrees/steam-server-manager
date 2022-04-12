@@ -11,23 +11,27 @@ use crate::{
     steam_apps::{self, App},
 };
 
-pub struct InstallService {
+pub struct InstallService<S: ServerStorage> {
     client: install::Client,
-    storage: Box<dyn ServerStorage>,
+    storage: S,
 }
 
-impl InstallService {
-    pub fn new(steam_cmd: String, storage: Box<dyn ServerStorage>) -> Self {
+impl<S: ServerStorage> InstallService<S> {
+    pub fn new(steam_cmd: &str, storage: S) -> Self {
         InstallService {
             client: install::Client::new(steam_cmd),
             storage,
         }
     }
 
-    pub fn new_server(&self, id: u32, name: &String, login: &String) -> Result<()> {
-        let server = Server::new(id, name, login, name);
+    pub fn new_server(&self, server: &Server) -> Result<()> {
+        //let server = Server::new(id, name, login, name);
         self.storage.save(&server)?;
         Ok(())
+    }
+
+    pub fn get_server(&self, name: &str) -> Result<Server> {
+        self.storage.load(name)
     }
 
     pub fn install(&self, name: String, w: Box<dyn Write>) -> Result<()> {

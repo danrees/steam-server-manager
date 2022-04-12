@@ -1,3 +1,4 @@
 /target
 /data/
 config.toml
+/server_data/

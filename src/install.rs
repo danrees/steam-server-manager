@@ -6,10 +6,6 @@ use std::{
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-pub struct Client {
-    steamd_cmd: String,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Server {
     id: u32,
@@ -18,7 +14,7 @@ pub struct Server {
     install_dir: String,
 }
 
-impl<'a> Server {
+impl Server {
     pub fn new(id: u32, name: &str, login: &str, install_dir: &str) -> Self {
         return Server {
             id,
@@ -38,10 +34,15 @@ pub struct SteamCommand<'a> {
     command: &'a str,
     args: &'a [&'a str],
 }
+pub struct Client {
+    steamd_cmd: String,
+}
 
 impl Client {
-    pub fn new(steamd_cmd: String) -> Self {
-        Self { steamd_cmd }
+    pub fn new(steamd_cmd: &str) -> Self {
+        Self {
+            steamd_cmd: steamd_cmd.into(),
+        }
     }
 
     fn run(&self, commands: &Vec<SteamCommand>) -> anyhow::Result<Child> {
@@ -99,7 +100,7 @@ mod test {
 
     #[test]
     fn test_run() -> anyhow::Result<()> {
-        let client: Client = Client::new(String::from("echo"));
+        let client: Client = Client::new("echo");
         let commands = vec![SteamCommand {
             command: "hello",
             args: &["world"],

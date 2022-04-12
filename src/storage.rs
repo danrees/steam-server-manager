@@ -1,9 +1,9 @@
-use crate::{
-    install::{Server, ServerStorage},
-    steam_apps::App,
-};
+use crate::install::{Server, ServerStorage};
 use anyhow::Result;
-use std::{fs::File, path::Path};
+use std::{
+    fs::{self, File},
+    path::Path,
+};
 
 pub struct FileStorage {
     dir: String,
@@ -11,6 +11,7 @@ pub struct FileStorage {
 
 impl FileStorage {
     pub fn new(dir: &str) -> Self {
+        fs::create_dir_all(dir).unwrap();
         FileStorage { dir: dir.into() }
     }
 }

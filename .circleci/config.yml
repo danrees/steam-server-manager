@@ -40,12 +40,12 @@ jobs:
     steps:
       - checkout
       - setup-sccache
-      - restore_sccache-cache
+      - restore-sccache-cache
       - run: 
           name: Cargo test
           command: "cargo test"
-      - save_sccache-cache
-      
+      - save-sccache-cache
+
 workflows:
   build:
     jobs:

@@ -1,8 +1,10 @@
 version: 2.1
-
+environment:
+  SCCACHE_VERSION: "v0.2.15"
+  
 executors:
   rust:
-    resource_class: small
+    resource_class: medium
     docker:
       - image: cimg/rust:1.59.0
 # Helper commands from https://medium.com/@edouard.oger/rust-caching-on-circleci-using-sccache-c996344f0115
@@ -12,11 +14,19 @@ commands:
       - run:
           name: Install sccache
           command: |-
-            cargo install sccache
+            SCCACHE="sccache-${SCCACHE_VERSION}-x86_64-unknown-linux-musl"
+            SCCACHE_ARCHIVE="${SCCACHE}.tar.gz"
+            
+            SCCACHE_URL="https://github.com/mozilla/sccache/releases/download/${SCCACHE_VERSION}/${SCCACHE_ARCHIVE}"
+            curl -sfSL --retry 5 --retry-delay 10 "${SCCACHE_URL}" | sudo tar -xz --strip-components=1 -C /usr/local/bin/ "${SCCACHE}/sccache"
+            sudo chmod +x /usr/local/bin/sccache
+
             # This configures Rust to use sccache.
             echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
+
             # This is the maximum space sccache cache will use on disk.
             echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
+
             sccache --version
   restore-sccache-cache:
     steps:

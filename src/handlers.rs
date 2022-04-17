@@ -3,7 +3,7 @@ use std::sync::{Mutex, PoisonError};
 use rocket::{form::Form, serde::json::Json, State};
 
 use crate::{
-    install::{Server, ServerStorage},
+    install::Server,
     service::{InstallService, SteamAppsService},
     steam_apps::App,
     storage::FileStorage,

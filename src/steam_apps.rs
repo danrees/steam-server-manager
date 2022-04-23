@@ -1,7 +1,6 @@
 use regex::RegexBuilder;
 
 use serde::{Deserialize, Serialize};
-//use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct App {

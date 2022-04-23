@@ -1,5 +1,4 @@
-use std::sync::{Mutex, PoisonError};
-
+use rocket::response::stream::TextStream;
 use rocket::{form::Form, serde::json::Json, State};
 
 use crate::{
@@ -8,6 +7,9 @@ use crate::{
     steam_apps::App,
     storage::FileStorage,
 };
+
+use std::io::BufWriter;
+use std::sync::{Mutex, PoisonError};
 
 #[derive(Debug, Responder)]
 #[response(status = 500, content_type = "json")]
@@ -69,4 +71,22 @@ pub fn get_server(
         .get_server(name)
         .map(|m| Json(m))
         .map_err(|e| e.into())
+}
+
+#[post("/install/<name>")]
+pub fn install(
+    name: &str,
+    install_service: &State<Mutex<InstallService<FileStorage>>>,
+) -> Result<TextStream![String], ServiceError> {
+    let service = install_service.lock()?;
+    //let buf = Vec::new();
+    let mut w = BufWriter::new(Vec::new());
+    service.install(name, &mut w)?;
+
+    let ts = TextStream! {
+        for b in w.into_inner() {
+            yield String::from_utf8(b).unwrap();
+        }
+    };
+    Ok(ts)
 }

@@ -34,7 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .manage(settings)
         .manage(Mutex::new(install_service))
         .mount("/apps", routes![search_apps, generate_apps])
-        .mount("/server", routes![create_server, get_server])
+        .mount(
+            "/server",
+            routes![create_server, get_server, crate::handlers::install],
+        )
         .launch()
         .await?;
     Ok(())

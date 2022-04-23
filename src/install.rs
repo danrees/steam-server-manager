@@ -1,5 +1,6 @@
 use std::{
-    io::{BufRead, BufReader, Error, Write},
+    io::prelude::*,
+    io::{BufReader, Error},
     process::{Child, Command, Stdio},
 };
 
@@ -57,7 +58,7 @@ impl Client {
         return Ok(output);
     }
 
-    pub fn install(&self, server: &Server, mut w: Box<dyn Write>) -> anyhow::Result<()> {
+    pub fn install<W: Write>(&self, server: &Server, mut writer: W) -> anyhow::Result<()> {
         let install_dir = [server.install_dir.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
         let commands = vec![
@@ -80,15 +81,13 @@ impl Client {
         ];
         let proc = self.run(&commands)?;
 
-        let reader =
+        let mut reader =
             BufReader::new(proc.stdout.ok_or_else(|| {
                 Error::new(std::io::ErrorKind::Other, "Could not capture stdout")
             })?);
-
-        let lines = reader.lines().filter_map(|line| line.ok());
-        for l in lines {
-            w.write_all(l.as_bytes())?;
-        }
+        //let writer = BufWriter::new(sender);
+        //let lines = reader.lines().filter_map(|line| line.ok());
+        std::io::copy(&mut reader, &mut writer)?;
 
         Ok(())
     }

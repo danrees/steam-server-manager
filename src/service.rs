@@ -34,9 +34,9 @@ impl<S: ServerStorage> InstallService<S> {
         self.storage.load(name)
     }
 
-    pub fn install(&self, name: String, w: Box<dyn Write>) -> Result<()> {
+    pub fn install<W: Write>(&self, name: &str, send: W) -> Result<()> {
         let server = self.storage.load(&name)?;
-        self.client.install(&server, w)?;
+        self.client.install(&server, send)?;
         Ok(())
     }
 }

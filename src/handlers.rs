@@ -1,11 +1,12 @@
 use rocket::response::stream::TextStream;
 use rocket::{form::Form, serde::json::Json, State};
 
+use crate::db::DB;
 use crate::{
     install::Server,
     service::{InstallService, SteamAppsService},
     steam_apps::App,
-    storage::FileStorage,
+    //storage::FileStorage,
 };
 
 use std::io::BufWriter;
@@ -54,34 +55,45 @@ pub async fn generate_apps(
 pub fn create_server(
     server: Json<Server>,
     // TODO: How can I still do this generically
-    install_service: &State<Mutex<InstallService<FileStorage>>>,
+    install_service: &State<Mutex<InstallService<DB>>>,
 ) -> Result<(), ServiceError> {
     let service = install_service.lock()?;
     service.new_server(&server)?;
     Ok(())
 }
 
-#[get("/<name>")]
+#[get("/<id>")]
 pub fn get_server(
-    name: &str,
-    install_service: &State<Mutex<InstallService<FileStorage>>>,
+    id: i32,
+    install_service: &State<Mutex<InstallService<DB>>>,
 ) -> Result<Json<Server>, ServiceError> {
     install_service
         .lock()?
-        .get_server(name)
+        .get_server(id)
         .map(|m| Json(m))
         .map_err(|e| e.into())
 }
 
-#[post("/install/<name>")]
+#[get("/")]
+pub fn list_servers(
+    install_service: &State<Mutex<InstallService<DB>>>,
+) -> Result<Json<Vec<Server>>, ServiceError> {
+    install_service
+        .lock()?
+        .list_servers()
+        .map(|m| Json(m))
+        .map_err(|e| e.into())
+}
+
+#[post("/install/<id>")]
 pub fn install(
-    name: &str,
-    install_service: &State<Mutex<InstallService<FileStorage>>>,
+    id: i32,
+    install_service: &State<Mutex<InstallService<DB>>>,
 ) -> Result<TextStream![String], ServiceError> {
     let service = install_service.lock()?;
     //let buf = Vec::new();
     let mut w = BufWriter::new(Vec::new());
-    service.install(name, &mut w)?;
+    service.install(id, &mut w)?;
 
     let ts = TextStream! {
         for b in w.into_inner() {

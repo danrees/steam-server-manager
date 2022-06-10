@@ -4,19 +4,21 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
+use crate::schema::*;
 use anyhow::Result;
+use diesel::Queryable;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Queryable, Insertable)]
 pub struct Server {
-    id: u32,
+    pub id: i32,
     pub name: String,
-    login: String,
-    install_dir: String,
+    pub login: String,
+    pub install_dir: String,
 }
 
 impl Server {
-    pub fn new(id: u32, name: &str, login: &str, install_dir: &str) -> Self {
+    pub fn new(id: i32, name: &str, login: &str, install_dir: &str) -> Self {
         return Server {
             id,
             name: name.into(),
@@ -28,7 +30,8 @@ impl Server {
 
 pub trait ServerStorage {
     fn save(&self, server: &Server) -> Result<()>;
-    fn load(&self, name: &str) -> Result<Server>;
+    fn load(&self, id: i32) -> Result<Server>;
+    fn list(&self) -> Result<Vec<Server>>;
 }
 
 pub struct SteamCommand<'a> {

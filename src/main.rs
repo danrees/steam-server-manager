@@ -1,15 +1,21 @@
+#[macro_use]
+extern crate diesel;
+
 use std::sync::Mutex;
 
 use config::Config;
-use handlers::{create_server, generate_apps, get_server, search_apps};
-use storage::FileStorage;
+use db::DB;
+use handlers::{create_server, generate_apps, get_server, list_servers, search_apps};
+//use storage::FileStorage;
 //use serde::{Deserialize, Serialize};
 
+mod db;
 mod handlers;
 mod install;
+mod schema;
 mod service;
 mod steam_apps;
-mod storage;
+//mod storage;
 mod types;
 
 #[macro_use]
@@ -27,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_service =
         service::SteamAppsService::new(&settings.steam_api_url, "./data/applist.json");
-    let storage = FileStorage::new("./server_data");
+    let storage = DB::establish_connection(&settings.database_url)?; //FileStorage::new("./server_data");
     let install_service = service::InstallService::new(&settings.steamcmd_location, storage);
     rocket::build()
         .manage(app_service)
@@ -36,7 +42,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .mount("/apps", routes![search_apps, generate_apps])
         .mount(
             "/server",
-            routes![create_server, get_server, crate::handlers::install],
+            routes![
+                create_server,
+                get_server,
+                list_servers,
+                crate::handlers::install
+            ],
         )
         .launch()
         .await?;

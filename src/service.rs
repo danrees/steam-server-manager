@@ -30,12 +30,16 @@ impl<S: ServerStorage> InstallService<S> {
         Ok(())
     }
 
-    pub fn get_server(&self, name: &str) -> Result<Server> {
-        self.storage.load(name)
+    pub fn get_server(&self, id: i32) -> Result<Server> {
+        self.storage.load(id)
     }
 
-    pub fn install<W: Write>(&self, name: &str, send: W) -> Result<()> {
-        let server = self.storage.load(&name)?;
+    pub fn list_servers(&self) -> Result<Vec<Server>> {
+        self.storage.list()
+    }
+
+    pub fn install<W: Write>(&self, id: i32, send: W) -> Result<()> {
+        let server = self.storage.load(id)?;
         self.client.install(&server, send)?;
         Ok(())
     }

@@ -13,11 +13,6 @@ impl DB {
         let conn = SqliteConnection::establish(url)?;
         Ok(DB { conn })
     }
-    pub fn list_servers(&self) -> anyhow::Result<Vec<Server>> {
-        use crate::schema::servers::dsl::*;
-        let results = servers.load::<Server>(&self.conn)?;
-        Ok(results)
-    }
 }
 
 impl ServerStorage for DB {

@@ -30,7 +30,7 @@ impl Server {
 
 pub trait ServerStorage {
     fn save(&self, server: &Server) -> Result<()>;
-    fn load(&self, id: i32) -> Result<Server>;
+    fn load(&self, server_id: i32) -> Result<Server>;
     fn list(&self) -> Result<Vec<Server>>;
 }
 

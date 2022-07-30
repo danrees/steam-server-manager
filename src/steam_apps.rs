@@ -8,12 +8,6 @@ pub struct App {
     pub appid: u32,
 }
 
-impl App {
-    pub fn new(name: String, appid: u32) -> Self {
-        App { name, appid }
-    }
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct AppList {
     pub apps: Vec<App>,

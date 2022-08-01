@@ -31,14 +31,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?
         .try_deserialize()?;
 
-    let app_service =
-        service::SteamAppsService::new(&settings.steam_api_url, "./data/applist.json");
+    let app_service = service::SteamAppsService::new(&settings.steam_api_url);
     let storage = DB::establish_connection(&settings.database_url)?; //FileStorage::new("./server_data");
     let install_service = service::InstallService::new(&settings.steamcmd_location, storage);
     rocket::build()
         .manage(app_service)
         .manage(settings)
         .manage(Mutex::new(install_service))
+        .attach(steam_apps::Db::fairing())
         .mount("/apps", routes![search_apps, generate_apps])
         .mount(
             "/server",

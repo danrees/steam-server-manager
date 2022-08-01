@@ -8,7 +8,7 @@ use anyhow::Result;
 
 use crate::{
     install::{self, Server, ServerStorage},
-    steam_apps::{self, App},
+    steam_apps::{self, App, Db},
 };
 
 pub struct InstallService<S: ServerStorage> {
@@ -47,28 +47,19 @@ impl<S: ServerStorage> InstallService<S> {
 
 pub struct SteamAppsService {
     client: steam_apps::Client,
-    file_name: String,
 }
 
 impl SteamAppsService {
-    pub fn new(url: &str, file_name: &str) -> Self {
+    pub fn new(url: &str) -> Self {
         SteamAppsService {
-            client: steam_apps::Client::new(url.to_string()),
-            file_name: file_name.to_string(),
+            client: steam_apps::Client::new(url),
         }
     }
-    pub async fn generate(&self) -> Result<()> {
-        let path = Path::new(&self.file_name);
-        let parent = path
-            .parent()
-            .ok_or(anyhow::anyhow!("path of parent does not exist: {:?}", path))?;
-        fs::create_dir_all(parent)?;
-        let mut file = File::create(path)?;
-        self.client.generate_applist().await
+    pub async fn generate(&self, db: Db) -> Result<()> {
+        self.client.generate_applist(db).await
     }
 
-    pub fn search(&self, name: &str, case_insensitive: bool) -> Result<Vec<App>> {
-        let mut file = File::open(&self.file_name)?;
-        self.client.search(&mut file, name, case_insensitive)
+    pub async fn search(&self, name: &str, db: Db) -> Result<Vec<App>> {
+        self.client.search(name, db).await
     }
 }

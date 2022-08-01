@@ -6,8 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 config = { version = "0.13.0", features = ["toml"] }
-diesel = { version = "1.4.8", features = ["sqlite"] }
+diesel = { git = "https://github.com/diesel-rs/diesel.git", tag = "v2.0.0-rc1", features = [
+    "sqlite",
+] }
 serde = "1.0.136"
+libsqlite3-sys = "0.25.1"
 reqwest = "0.11.10"
 serde_json = "1.0.79"
 anyhow = "1.0.56"
@@ -17,3 +20,6 @@ tempfile = "3.3.0"
 unescape = "0.1.0"
 tokio = { version = "1.17.0", features = ["full"] }
 rocket = { version = "0.5.0-rc.1", features = ["json"] }
+rocket_sync_db_pools = { git = "https://github.com/SergioBenitez/Rocket/tree/v0.5-rc/contrib/sync_db_pools", features = [
+    "diesel_sqlite_pool"
+] }

@@ -2,10 +2,11 @@ use rocket::response::stream::TextStream;
 use rocket::{form::Form, serde::json::Json, State};
 
 use crate::db::DB;
+use crate::steam_apps::App;
 use crate::{
     install::Server,
     service::{InstallService, SteamAppsService},
-    steam_apps::App,
+    steam_apps::Db,
     //storage::FileStorage,
 };
 
@@ -35,20 +36,22 @@ impl<S> From<PoisonError<S>> for ServiceError {
 }
 
 #[post("/search", data = "<term>")]
-pub fn search_apps(
+pub async fn search_apps(
     term: Form<SearchTerms<'_>>,
+    db: Db,
     steam_apps_service: &State<SteamAppsService>,
 ) -> Result<Json<Vec<App>>, ServiceError> {
-    let app = steam_apps_service.search(term.term, term.case_insensitive)?;
+    let app = steam_apps_service.search(term.term, db).await?;
 
     Ok(Json(app))
 }
 
 #[post("/generate")]
 pub async fn generate_apps(
+    db: Db,
     steam_apps_service: &State<SteamAppsService>,
 ) -> Result<(), ServiceError> {
-    steam_apps_service.generate().await.map_err(|e| e.into())
+    steam_apps_service.generate(db).await.map_err(|e| e.into())
 }
 
 #[post("/", data = "<server>")]

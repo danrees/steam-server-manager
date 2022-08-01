@@ -64,7 +64,7 @@ impl SteamAppsService {
             .ok_or(anyhow::anyhow!("path of parent does not exist: {:?}", path))?;
         fs::create_dir_all(parent)?;
         let mut file = File::create(path)?;
-        self.client.generate_applist(&mut file).await
+        self.client.generate_applist().await
     }
 
     pub fn search(&self, name: &str, case_insensitive: bool) -> Result<Vec<App>> {

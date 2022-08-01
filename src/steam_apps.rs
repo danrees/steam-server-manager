@@ -1,3 +1,4 @@
+use diesel::{insert_into, query_dsl::methods::FilterDsl, SqliteConnection};
 use regex::RegexBuilder;
 
 use serde::{Deserialize, Serialize};
@@ -19,33 +20,42 @@ pub struct Response {
 
 #[derive(Default)]
 pub struct Client {
-    url: String,
+    conn: SqliteConnection,
 }
 
 impl Client {
-    pub fn new(url: String) -> Self {
-        Client { url }
+    pub fn new(conn: SqliteConnection) -> Self {
+        Client { conn }
     }
 
-    pub async fn generate_applist<W: std::io::Write>(&self, w: &mut W) -> anyhow::Result<()> {
+    pub async fn generate_applist(&self) -> anyhow::Result<()> {
+        use crate::schema::steam_apps::dsl::*;
         let path = "/ISteamApps/GetAppList/v2/";
 
         let body = reqwest::get(format!("{}{}", &self.url, path))
             .await?
             .text()
             .await?;
-        //let jsonified = serde_json::to_string(&body)?;
-        w.write_all(body.as_bytes())?;
-        w.flush()?;
+
+        let records: AppList = serde_json::from_str(&body)?;
+
+        insert_into(steam_apps)
+            .values(records.apps)
+            .on_conflict(id)
+            .do_update()
+            .execute(self.conn)?;
         Ok(())
     }
 
     pub fn search<R: std::io::Read>(
         &self,
         r: &mut R,
-        name: &str,
+        app_name: &str,
         case_insensitive: bool,
     ) -> anyhow::Result<Vec<App>> {
+        use crate::schema::steam_apps::dsl::*;
+
+        steam_apps.filter(name.like(app_name)).load(self.conn);
         //let matcher = Regex::new(&name)?;
         let matcher = RegexBuilder::new(name)
             .case_insensitive(case_insensitive)
@@ -87,9 +97,7 @@ mod test {
 
         let client = Client::new(mockito::server_url());
         {
-            client
-                .generate_applist::<File>(&mut output_file.as_file_mut())
-                .await?;
+            client.generate_applist().await?;
         }
 
         let mut output = String::new();

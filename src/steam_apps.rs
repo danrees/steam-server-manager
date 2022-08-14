@@ -51,7 +51,7 @@ impl Client {
             apps.iter().for_each(|a| {
                 insert_into(steam_apps)
                     .values(a)
-                    .on_conflict()
+                    .on_conflict(id)
                     .do_nothing()
                     .execute(conn)
             });

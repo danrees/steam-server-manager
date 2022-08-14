@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_service = service::SteamAppsService::new(&settings.steam_api_url);
     let storage = DB::establish_connection(&settings.database_url)?; //FileStorage::new("./server_data");
     let install_service = service::InstallService::new(&settings.steamcmd_location, storage);
-    rocket::build()
+    let _r = rocket::build()
         .manage(app_service)
         .manage(settings)
         .manage(Mutex::new(install_service))
@@ -51,5 +51,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .launch()
         .await?;
+
     Ok(())
 }

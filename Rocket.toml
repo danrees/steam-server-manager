@@ -1,2 +1,5 @@
 [global.databases]
 sqlite_db = "steam-server-manager.db"
+
+[default.databases.sqlite_db]
+url = "steam-server-manager.db"

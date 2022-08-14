@@ -338,18 +338,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b28135ecf6b7d446b43e27e225622a038cc4e2930a1022f51cdb97ada19b8e4d"
 dependencies = [
  "byteorder",
- "diesel_derives 1.4.1",
- "libsqlite3-sys 0.9.1",
+ "diesel_derives",
+ "libsqlite3-sys",
  "r2d2",
-]
-
-[[package]]
-name = "diesel"
-version = "2.0.0-rc.1"
-source = "git+https://github.com/diesel-rs/diesel.git?tag=v2.0.0-rc1#10c369e2d5ca695f4b88329ca6bda59d1e88d559"
-dependencies = [
- "diesel_derives 2.0.0-rc.1",
- "libsqlite3-sys 0.25.1",
 ]
 
 [[package]]
@@ -358,17 +349,6 @@ version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45f5098f628d02a7a0f68ddba586fb61e80edec3bdc1be3b921f4ceec60858d3"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "diesel_derives"
-version = "2.0.0-rc.1"
-source = "git+https://github.com/diesel-rs/diesel.git?tag=v2.0.0-rc1#10c369e2d5ca695f4b88329ca6bda59d1e88d559"
-dependencies = [
- "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
@@ -793,16 +773,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libsqlite3-sys"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f0455f2c1bc9a7caa792907026e469c1d91761fb0ea37cbb16427c77280cf35"
-dependencies = [
- "pkg-config",
- "vcpkg",
-]
-
-[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1178,30 +1148,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 
 [[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2",
- "quote",
- "syn",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2",
- "quote",
- "version_check",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1462,7 +1408,7 @@ version = "0.1.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fa48b6ab25013e9812f1b0c592741900b3a2a83c0936292e0565c0ac842f558"
 dependencies = [
- "diesel 1.4.8",
+ "diesel",
  "r2d2",
  "rocket",
  "rocket_sync_db_pools_codegen",
@@ -1711,8 +1657,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "config",
- "diesel 2.0.0-rc.1",
- "libsqlite3-sys 0.25.1",
+ "diesel",
  "mockito",
  "regex",
  "reqwest",

@@ -20,7 +20,6 @@ pub struct ServiceError(String);
 #[derive(FromForm)]
 pub struct SearchTerms<'a> {
     term: &'a str,
-    case_insensitive: bool,
 }
 
 impl From<anyhow::Error> for ServiceError {

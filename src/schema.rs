@@ -8,13 +8,10 @@ table! {
 }
 
 table! {
-    steam_apps (id) {
-        id -> Integer,
+    steam_apps (appid) {
+        appid -> Integer,
         name -> Text,
     }
 }
 
-allow_tables_to_appear_in_same_query!(
-    servers,
-    steam_apps,
-);
+allow_tables_to_appear_in_same_query!(servers, steam_apps,);

@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate diesel;
 
-use std::sync::Mutex;
+
 
 use config::Config;
 use handlers::{create_server, generate_apps, get_server, list_servers, search_apps};
@@ -15,6 +15,7 @@ mod schema;
 mod service;
 mod steam_apps;
 //mod storage;
+mod cors;
 mod types;
 
 #[macro_use]
@@ -51,8 +52,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _r = rocket::build()
         .manage(app_service)
         .manage(settings)
-        .manage(Mutex::new(install_service))
+        .manage(install_service)
         .attach(steam_apps::Db::fairing())
+        .attach(db::Db::fairing())
         .mount("/apps", routes![search_apps, generate_apps])
         .mount(
             "/server",

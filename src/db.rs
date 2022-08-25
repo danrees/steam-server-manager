@@ -1,34 +1,45 @@
 use crate::install::{Server, ServerStorage};
 
 use diesel::{insert_into, prelude::*, Connection};
+use rocket_sync_db_pools::database;
 // use diesel::sqlite::SqliteConnection;
 //use rusqlite::{params, Connection};
 
-pub struct DB {
-    conn: SqliteConnection,
-}
+// pub struct DB {
+//     conn: SqliteConnection,
+// }
 
-impl DB {
-    pub fn establish_connection(url: &str) -> Result<DB, anyhow::Error> {
-        let conn = SqliteConnection::establish(url)?;
-        Ok(DB { conn })
-    }
-}
+pub struct DBStorage {}
 
-impl ServerStorage for DB {
-    fn save(&self, server: &Server) -> anyhow::Result<()> {
+#[database("sqlite_db")]
+pub struct Db(diesel::SqliteConnection);
+
+// impl DB {
+//     pub fn establish_connection(url: &str) -> Result<DB, anyhow::Error> {
+//         let conn = SqliteConnection::establish(url)?;
+//         Ok(DB { conn })
+//     }
+// }
+
+impl DBStorage {
+    pub async fn save(&self, server: &Server, db: Db) -> anyhow::Result<()> {
         use crate::schema::servers::dsl::*;
-        insert_into(servers).values(server).execute(&self.conn)?;
+        let saveServer = server.clone();
+        db.run(move |conn| {
+            insert_into(servers).values(saveServer).execute(conn);
+        });
         Ok(())
     }
-    fn load(&self, server_id: i32) -> anyhow::Result<Server> {
+    pub async fn load(&self, server_id: i32, db: Db) -> anyhow::Result<Server> {
         use crate::schema::servers::dsl::*;
-        let server = servers.find(server_id).first::<Server>(&self.conn)?;
+        let server = db
+            .run(move |conn| servers.find(server_id).first::<Server>(conn))
+            .await?;
         Ok(server)
     }
-    fn list(&self) -> anyhow::Result<Vec<Server>> {
+    pub async fn list(&self, db: Db) -> anyhow::Result<Vec<Server>> {
         use crate::schema::servers::dsl::*;
-        let results = servers.load::<Server>(&self.conn)?;
+        let results = db.run(move |conn| servers.load::<Server>(conn)).await?;
         Ok(results)
     }
 }

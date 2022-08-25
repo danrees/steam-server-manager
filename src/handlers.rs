@@ -1,8 +1,10 @@
+use log::debug;
 use rocket::response::stream::TextStream;
 use rocket::{form::Form, serde::json::Json, State};
+use tokio::stream;
 
-use crate::db::DB;
 use crate::steam_apps::App;
+use crate::{db, steam_apps};
 use crate::{
     install::Server,
     service::{InstallService, SteamAppsService},
@@ -11,7 +13,7 @@ use crate::{
 };
 
 use std::io::BufWriter;
-use std::sync::{Mutex, PoisonError};
+use std::sync::{mpsc, Mutex, PoisonError};
 
 #[derive(Debug, Responder)]
 #[response(status = 500, content_type = "json")]
@@ -37,7 +39,7 @@ impl<S> From<PoisonError<S>> for ServiceError {
 #[post("/search", data = "<term>")]
 pub async fn search_apps(
     term: Form<SearchTerms<'_>>,
-    db: Db,
+    db: steam_apps::Db,
     steam_apps_service: &State<SteamAppsService>,
 ) -> Result<Json<Vec<App>>, ServiceError> {
     let app = steam_apps_service.search(term.term, db).await?;
@@ -47,60 +49,68 @@ pub async fn search_apps(
 
 #[post("/generate")]
 pub async fn generate_apps(
-    db: Db,
+    db: steam_apps::Db,
     steam_apps_service: &State<SteamAppsService>,
 ) -> Result<(), ServiceError> {
     steam_apps_service.generate(db).await.map_err(|e| e.into())
 }
 
 #[post("/", data = "<server>")]
-pub fn create_server(
+pub async fn create_server(
     server: Json<Server>,
     // TODO: How can I still do this generically
-    install_service: &State<Mutex<InstallService<DB>>>,
+    install_service: &State<InstallService>,
+    db: db::Db,
 ) -> Result<(), ServiceError> {
-    let service = install_service.lock()?;
-    service.new_server(&server)?;
+    let service = install_service;
+    service.new_server(&server, db).await?;
     Ok(())
 }
 
 #[get("/<id>")]
-pub fn get_server(
+pub async fn get_server(
     id: i32,
-    install_service: &State<Mutex<InstallService<DB>>>,
+    install_service: &State<InstallService>,
+    db: db::Db,
 ) -> Result<Json<Server>, ServiceError> {
     install_service
-        .lock()?
-        .get_server(id)
+        .get_server(id, db)
+        .await
         .map(|m| Json(m))
         .map_err(|e| e.into())
 }
 
 #[get("/")]
-pub fn list_servers(
-    install_service: &State<Mutex<InstallService<DB>>>,
+pub async fn list_servers(
+    install_service: &State<InstallService>,
+    db: db::Db,
 ) -> Result<Json<Vec<Server>>, ServiceError> {
     install_service
-        .lock()?
-        .list_servers()
+        .list_servers(db)
+        .await
         .map(|m| Json(m))
         .map_err(|e| e.into())
 }
 
 #[post("/install/<id>")]
-pub fn install(
+pub async fn install(
     id: i32,
-    install_service: &State<Mutex<InstallService<DB>>>,
+    install_service: &State<InstallService>,
+    db: db::Db,
 ) -> Result<TextStream![String], ServiceError> {
-    let service = install_service.lock()?;
+    let (tx, rx) = mpsc::channel();
+
+    let s = install_service.install(id, tx, db);
+    debug!("installing {}", id);
     //let buf = Vec::new();
-    let mut w = BufWriter::new(Vec::new());
-    service.install(id, &mut w)?;
+    //let mut w = BufWriter::new(Vec::new());
 
     let ts = TextStream! {
-        for b in w.into_inner() {
-            yield String::from_utf8(b).unwrap();
+        for b in rx {
+            yield b;
         }
     };
+    s.await?;
+
     Ok(ts)
 }

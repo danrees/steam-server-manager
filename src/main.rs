@@ -4,7 +4,6 @@ extern crate diesel;
 use std::sync::Mutex;
 
 use config::Config;
-use db::DB;
 use handlers::{create_server, generate_apps, get_server, list_servers, search_apps};
 //use storage::FileStorage;
 //use serde::{Deserialize, Serialize};
@@ -32,8 +31,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .try_deserialize()?;
 
     let app_service = service::SteamAppsService::new(&settings.steam_api_url);
-    let storage = DB::establish_connection(&settings.database_url)?; //FileStorage::new("./server_data");
+    let storage = db::DBStorage {}; //FileStorage::new("./server_data");
     let install_service = service::InstallService::new(&settings.steamcmd_location, storage);
+
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .apply()?;
+
     let _r = rocket::build()
         .manage(app_service)
         .manage(settings)

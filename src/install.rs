@@ -2,11 +2,13 @@ use std::{
     io::prelude::*,
     io::{BufReader, Error},
     process::{Child, Command, Stdio},
+    sync::mpsc,
 };
 
 use crate::schema::*;
 use anyhow::Result;
 use diesel::Queryable;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Queryable, Insertable)]
@@ -61,37 +63,46 @@ impl Client {
         return Ok(output);
     }
 
-    pub fn install<W: Write>(&self, server: &Server, mut writer: W) -> anyhow::Result<()> {
+    pub async fn install(
+        &self,
+        server: &Server,
+        sender: mpsc::Sender<String>,
+    ) -> anyhow::Result<()> {
         let install_dir = [server.install_dir.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
         let commands = vec![
             SteamCommand {
-                command: "+login",
-                args: &["anonymous"],
-            },
-            SteamCommand {
                 command: "+force_install_dir",
                 args: &install_dir,
+            },
+            SteamCommand {
+                command: "+login",
+                args: &["anonymous"],
             },
             SteamCommand {
                 command: "+app_update",
                 args: &app_update,
             },
             SteamCommand {
-                command: "+quit",
+                command: "+exit",
                 args: &[],
             },
         ];
+        debug!("running steamcmd install for application {}", server.name);
         let proc = self.run(&commands)?;
 
-        let mut reader =
+        let reader =
             BufReader::new(proc.stdout.ok_or_else(|| {
                 Error::new(std::io::ErrorKind::Other, "Could not capture stdout")
             })?);
         //let writer = BufWriter::new(sender);
         //let lines = reader.lines().filter_map(|line| line.ok());
-        std::io::copy(&mut reader, &mut writer)?;
-
+        for line in reader.lines() {
+            match line {
+                Ok(l) => sender.send(l)?,
+                Err(e) => return Err(anyhow::anyhow!(e)),
+            }
+        }
         Ok(())
     }
 }

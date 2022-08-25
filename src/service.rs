@@ -1,11 +1,9 @@
-use std::io::Write;
-
 use anyhow::Result;
 use log::debug;
 
 use crate::{
     db::{DBStorage, Db},
-    install::{self, Server, ServerStorage},
+    install::{self, Server},
     steam_apps::{self, App},
 };
 

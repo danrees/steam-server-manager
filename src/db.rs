@@ -1,6 +1,6 @@
-use crate::install::{Server, ServerStorage};
+use crate::install::Server;
 
-use diesel::{insert_into, prelude::*, Connection};
+use diesel::{insert_into, prelude::*};
 use rocket_sync_db_pools::database;
 // use diesel::sqlite::SqliteConnection;
 //use rusqlite::{params, Connection};
@@ -24,10 +24,9 @@ pub struct Db(diesel::SqliteConnection);
 impl DBStorage {
     pub async fn save(&self, server: &Server, db: Db) -> anyhow::Result<()> {
         use crate::schema::servers::dsl::*;
-        let saveServer = server.clone();
-        db.run(move |conn| {
-            insert_into(servers).values(saveServer).execute(conn);
-        });
+        let save_server = server.clone();
+        db.run(move |conn| insert_into(servers).values(save_server).execute(conn))
+            .await?;
         Ok(())
     }
     pub async fn load(&self, server_id: i32, db: Db) -> anyhow::Result<Server> {

@@ -1,19 +1,18 @@
 use log::debug;
 use rocket::response::stream::TextStream;
 use rocket::{form::Form, serde::json::Json, State};
-use tokio::stream;
+
 
 use crate::steam_apps::App;
 use crate::{db, steam_apps};
 use crate::{
     install::Server,
     service::{InstallService, SteamAppsService},
-    steam_apps::Db,
     //storage::FileStorage,
 };
 
-use std::io::BufWriter;
-use std::sync::{mpsc, Mutex, PoisonError};
+
+use std::sync::{mpsc, PoisonError};
 
 #[derive(Debug, Responder)]
 #[response(status = 500, content_type = "json")]

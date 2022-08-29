@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate diesel;
 
-
-
 use config::Config;
 use handlers::{create_server, generate_apps, get_server, list_servers, search_apps};
 //use storage::FileStorage;
@@ -55,6 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .manage(install_service)
         .attach(steam_apps::Db::fairing())
         .attach(db::Db::fairing())
+        .attach(cors::CORS)
         .mount("/apps", routes![search_apps, generate_apps])
         .mount(
             "/server",

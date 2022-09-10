@@ -1,7 +1,6 @@
 use log::debug;
-use rocket::response::stream::TextStream;
+use rocket::response::stream::{Event, EventStream};
 use rocket::{form::Form, serde::json::Json, State};
-
 
 use crate::steam_apps::App;
 use crate::{db, steam_apps};
@@ -11,8 +10,10 @@ use crate::{
     //storage::FileStorage,
 };
 
+use std::sync::PoisonError;
 
-use std::sync::{mpsc, PoisonError};
+pub struct Tx(pub flume::Sender<String>);
+pub struct Rx(pub flume::Receiver<String>);
 
 #[derive(Debug, Responder)]
 #[response(status = 500, content_type = "json")]
@@ -96,20 +97,22 @@ pub async fn install(
     id: i32,
     install_service: &State<InstallService>,
     db: db::Db,
-) -> Result<TextStream![String], ServiceError> {
-    let (tx, rx) = mpsc::channel();
-
-    let s = install_service.install(id, tx, db);
+    tx: &State<Tx>,
+) -> Result<(), ServiceError> {
+    let tx_clone = tx.0.clone();
+    let s = install_service.install(id, tx_clone, db);
     debug!("installing {}", id);
-    //let buf = Vec::new();
-    //let mut w = BufWriter::new(Vec::new());
 
-    let ts = TextStream! {
-        for b in rx {
-            yield b;
-        }
-    };
     s.await?;
+    Ok(())
+}
 
-    Ok(ts)
+#[get("/install/events")]
+pub async fn install_events(rx: &State<Rx>) -> EventStream![Event + '_] {
+    EventStream! {
+        while let Ok(msg) = rx.0.recv() {
+            debug!("{}", msg);
+            yield Event::data(msg);
+        }
+    }
 }

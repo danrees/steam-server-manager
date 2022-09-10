@@ -2,7 +2,6 @@ use std::{
     io::prelude::*,
     io::{BufReader, Error},
     process::{Child, Command, Stdio},
-    sync::mpsc,
 };
 
 use crate::schema::*;
@@ -66,7 +65,7 @@ impl Client {
     pub async fn install(
         &self,
         server: &Server,
-        sender: mpsc::Sender<String>,
+        sender: flume::Sender<String>,
     ) -> anyhow::Result<()> {
         let install_dir = [server.install_dir.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
@@ -99,7 +98,10 @@ impl Client {
         //let lines = reader.lines().filter_map(|line| line.ok());
         for line in reader.lines() {
             match line {
-                Ok(l) => sender.send(l)?,
+                Ok(l) => {
+                    //log::debug!("line: {}", l);
+                    sender.send(l)?
+                }
                 Err(e) => return Err(anyhow::anyhow!(e)),
             }
         }

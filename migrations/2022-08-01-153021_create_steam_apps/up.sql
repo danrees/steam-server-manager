@@ -1,5 +1,5 @@
 -- Your SQL goes here
 create table steam_apps (
-    appid integer not null,
+    appid integer primary key not null,
     name text not null
 );

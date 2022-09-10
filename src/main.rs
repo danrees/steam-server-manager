@@ -2,7 +2,9 @@
 extern crate diesel;
 
 use config::Config;
-use handlers::{create_server, generate_apps, get_server, list_servers, search_apps};
+use handlers::{
+    create_server, generate_apps, get_server, install_events, list_servers, search_apps, Rx, Tx,
+};
 //use storage::FileStorage;
 //use serde::{Deserialize, Serialize};
 
@@ -32,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_service = service::SteamAppsService::new(&settings.steam_api_url);
     let storage = db::DBStorage {}; //FileStorage::new("./server_data");
     let install_service = service::InstallService::new(&settings.steamcmd_location, storage);
-
+    let (tx, rx) = flume::unbounded::<String>();
     fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -51,6 +53,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .manage(app_service)
         .manage(settings)
         .manage(install_service)
+        .manage(Rx(rx))
+        .manage(Tx(tx))
         .attach(steam_apps::Db::fairing())
         .attach(db::Db::fairing())
         .attach(cors::CORS)
@@ -61,7 +65,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 create_server,
                 get_server,
                 list_servers,
-                crate::handlers::install
+                crate::handlers::install,
+                install_events,
             ],
         )
         .launch()

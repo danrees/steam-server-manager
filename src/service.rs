@@ -34,12 +34,7 @@ impl InstallService {
         self.storage.list(db).await
     }
 
-    pub async fn install(
-        &self,
-        id: i32,
-        send: std::sync::mpsc::Sender<String>,
-        db: Db,
-    ) -> Result<()> {
+    pub async fn install(&self, id: i32, send: flume::Sender<String>, db: Db) -> Result<()> {
         let server = self.storage.load(id, db).await?;
         self.client.install(&server, send).await?;
         debug!("installed appliction with id: {}", id);

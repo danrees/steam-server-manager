@@ -72,7 +72,9 @@ pub async fn get_server(
     id: i32,
     install_service: &State<InstallService>,
     db: db::Db,
+    tx: &State<Tx>,
 ) -> Result<Json<Server>, ServiceError> {
+    tx.0.send_async(String::from("got")).await.unwrap();
     install_service
         .get_server(id, db)
         .await
@@ -99,19 +101,24 @@ pub async fn install(
     db: db::Db,
     tx: &State<Tx>,
 ) -> Result<(), ServiceError> {
-    let tx_clone = tx.0.clone();
-    let s = install_service.install(id, tx_clone, db);
+    let tx_clone = &tx.0;
+    tx_clone
+        .send_async(String::from("A first message"))
+        .await
+        .unwrap();
+    let s = install_service.install(id, &tx_clone, db);
     debug!("installing {}", id);
-
     s.await?;
     Ok(())
 }
 
 #[get("/install/events")]
 pub async fn install_events(rx: &State<Rx>) -> EventStream![Event + '_] {
+    let receiver = &rx.0;
+    debug!("events called");
     EventStream! {
-        while let Ok(msg) = rx.0.recv() {
-            debug!("{}", msg);
+        while let Ok(msg) = receiver.recv_async().await {
+            debug!("received: {}", msg);
             yield Event::data(msg);
         }
     }

@@ -65,7 +65,7 @@ impl Client {
     pub async fn install(
         &self,
         server: &Server,
-        sender: flume::Sender<String>,
+        sender: &flume::Sender<String>,
     ) -> anyhow::Result<()> {
         let install_dir = [server.install_dir.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
@@ -99,8 +99,8 @@ impl Client {
         for line in reader.lines() {
             match line {
                 Ok(l) => {
-                    //log::debug!("line: {}", l);
-                    sender.send(l)?
+                    log::debug!("line: {}", l);
+                    sender.send_async(l).await?
                 }
                 Err(e) => return Err(anyhow::anyhow!(e)),
             }

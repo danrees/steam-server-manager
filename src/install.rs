@@ -1,7 +1,8 @@
 use std::{
-    io::prelude::*,
-    io::{BufReader, Error},
-    process::{Child, Command, Stdio},
+    //io::prelude::*,
+    //io::{BufReader, Error},
+    path::Path,
+    process::Stdio,
 };
 
 use crate::schema::*;
@@ -9,6 +10,8 @@ use anyhow::Result;
 use diesel::Queryable;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use tokio::io::{AsyncBufReadExt, BufReader, Error};
+use tokio::process::{Child, Command};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Queryable, Insertable)]
 pub struct Server {
@@ -52,10 +55,13 @@ impl Client {
 
     fn run(&self, commands: &Vec<SteamCommand>) -> anyhow::Result<Child> {
         let mut p = Command::new(&self.steamd_cmd);
+        p.kill_on_drop(true);
         p.stdout(Stdio::piped()).stderr(Stdio::piped());
         for c in commands {
-            p.arg(c.command).args(c.args);
+            p.arg(format!("{} {}", c.command, c.args.join(" ")));
         }
+
+        //debug!("{:?}", p.);
         let output = p.spawn()?;
         //let handle = p.spawn()?;
 
@@ -64,10 +70,16 @@ impl Client {
 
     pub async fn install(
         &self,
+        base_dir: &str,
         server: &Server,
         sender: &flume::Sender<String>,
     ) -> anyhow::Result<()> {
-        let install_dir = [server.install_dir.as_str()];
+        let path = Path::new(base_dir)
+            .join(server.install_dir.as_str())
+            .display()
+            .to_string();
+
+        let install_dir = [path.as_str()];
         let app_update = [&server.id.to_string(), "validate"];
         let commands = vec![
             SteamCommand {
@@ -90,21 +102,37 @@ impl Client {
         debug!("running steamcmd install for application {}", server.name);
         let proc = self.run(&commands)?;
 
-        let reader =
-            BufReader::new(proc.stdout.ok_or_else(|| {
-                Error::new(std::io::ErrorKind::Other, "Could not capture stdout")
-            })?);
+        let output = proc
+            .stdout
+            .ok_or_else(|| Error::new(std::io::ErrorKind::Other, "Could not capture stdout"))?;
+
+        // let reader =
+        //     BufReader::new(proc.stdout.ok_or_else(|| {
+        //         Error::new(std::io::ErrorKind::Other, "Could not capture stdout")
+        //     })?);
         //let writer = BufWriter::new(sender);
         //let lines = reader.lines().filter_map(|line| line.ok());
-        for line in reader.lines() {
-            match line {
-                Ok(l) => {
-                    log::debug!("line: {}", l);
-                    sender.send_async(l).await?
-                }
-                Err(e) => return Err(anyhow::anyhow!(e)),
-            }
+        let mut reader = BufReader::new(output).lines();
+
+        // tokio::spawn(async {
+        //     let status = proc.wait().await.expect("couldn't process exit status");
+        //     debug!("child status was {}", status);
+        // });
+
+        while let Some(l) = reader.next_line().await? {
+            log::debug!("line: {}", l);
+            sender.send_async(l).await?;
         }
+        // for line in reader.lines() {
+        //     match line {
+        //         Ok(l) => {
+        //             log::debug!("line: {}", l);
+        //             sender.send_async(l).await?
+        //         }
+        //         Err(e) => return Err(anyhow::anyhow!(e)),
+        //     }
+        // }
+
         Ok(())
     }
 }
@@ -113,14 +141,14 @@ impl Client {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_run() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn test_run() -> anyhow::Result<()> {
         let client: Client = Client::new("echo");
         let commands = vec![SteamCommand {
             command: "hello",
             args: &["world"],
         }];
-        let output = client.run(&commands)?.wait_with_output()?;
+        let output = client.run(&commands)?.wait_with_output().await?;
         let output_str = String::from_utf8(output.stdout)?;
 
         assert_eq!(String::from("hello world"), output_str.trim_end());

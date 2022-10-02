@@ -10,12 +10,14 @@ use crate::{
 pub struct InstallService {
     client: install::Client,
     storage: DBStorage,
+    base_dir: String,
 }
 
 impl InstallService {
-    pub fn new(steam_cmd: &str, storage: DBStorage) -> Self {
+    pub fn new(steam_cmd: &str, base_dir: &str, storage: DBStorage) -> Self {
         InstallService {
             client: install::Client::new(steam_cmd),
+            base_dir: base_dir.into(),
             storage,
         }
     }
@@ -36,7 +38,7 @@ impl InstallService {
 
     pub async fn install(&self, id: i32, send: &flume::Sender<String>, db: Db) -> Result<()> {
         let server = self.storage.load(id, db).await?;
-        self.client.install(&server, send).await?;
+        self.client.install(&self.base_dir, &server, send).await?;
         debug!("installed appliction with id: {}", id);
         Ok(())
     }

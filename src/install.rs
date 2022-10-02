@@ -1,9 +1,4 @@
-use std::{
-    //io::prelude::*,
-    //io::{BufReader, Error},
-    path::Path,
-    process::Stdio,
-};
+use std::{path::Path, process::Stdio};
 
 use crate::schema::*;
 use anyhow::Result;
@@ -23,12 +18,12 @@ pub struct Server {
 
 impl Server {
     pub fn new(id: i32, name: &str, login: &str, install_dir: &str) -> Self {
-        return Server {
+        Server {
             id,
             name: name.into(),
             login: login.into(),
             install_dir: install_dir.into(),
-        };
+        }
     }
 }
 
@@ -65,7 +60,7 @@ impl Client {
         let output = p.spawn()?;
         //let handle = p.spawn()?;
 
-        return Ok(output);
+        Ok(output)
     }
 
     pub async fn install(

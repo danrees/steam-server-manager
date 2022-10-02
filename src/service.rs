@@ -24,7 +24,7 @@ impl InstallService {
 
     pub async fn new_server(&self, server: &Server, db: Db) -> Result<()> {
         //let server = Server::new(id, name, login, name);
-        self.storage.save(&server, db).await?;
+        self.storage.save(server, db).await?;
         Ok(())
     }
 

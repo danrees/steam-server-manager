@@ -15,7 +15,7 @@ pub async fn list_servers(
     install_service
         .list_servers(db)
         .await
-        .map(|m| Json(m))
+        .map(Json)
         .map_err(|e| e.into())
 }
 
@@ -42,7 +42,7 @@ pub async fn get_server(
     install_service
         .get_server(id, db)
         .await
-        .map(|m| Json(m))
+        .map(Json)
         .map_err(|e| e.into())
 }
 
@@ -58,7 +58,7 @@ pub async fn install(
         .send_async(String::from("A first message"))
         .await
         .unwrap();
-    let s = install_service.install(id, &tx_clone, db);
+    let s = install_service.install(id, tx_clone, db);
     debug!("installing {}", id);
     s.await?;
     Ok(())

@@ -42,6 +42,10 @@ impl InstallService {
         debug!("installed appliction with id: {}", id);
         Ok(())
     }
+
+    pub async fn delete(&self, id: i32, db: Db) -> Result<()> {
+        self.storage.delete(id, db).await
+    }
 }
 
 pub struct SteamAppsService {

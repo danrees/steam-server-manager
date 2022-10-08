@@ -46,6 +46,15 @@ pub async fn get_server(
         .map_err(|e| e.into())
 }
 
+#[delete("/<id>")]
+pub async fn delete(
+    id: i32,
+    install_service: &State<InstallService>,
+    db: db::Db,
+) -> Result<(), ServiceError> {
+    install_service.delete(id, db).await.map_err(|e| e.into())
+}
+
 #[post("/install/<id>")]
 pub async fn install(
     id: i32,
@@ -54,10 +63,7 @@ pub async fn install(
     tx: &State<Tx>,
 ) -> Result<(), ServiceError> {
     let tx_clone = &tx.0;
-    tx_clone
-        .send_async(String::from("A first message"))
-        .await
-        .unwrap();
+
     let s = install_service.install(id, tx_clone, db);
     debug!("installing {}", id);
     s.await?;

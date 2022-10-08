@@ -4,7 +4,7 @@ extern crate diesel;
 use config::Config;
 use handlers::{
     apps::{generate_apps, search_apps},
-    server::{create_server, get_server, install_events, list_servers},
+    server::{create_server, delete, get_server, install_events, list_servers},
     test::test_events,
     Rx, Tx,
 };
@@ -71,6 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 list_servers,
                 crate::handlers::server::install,
                 install_events,
+                delete,
             ],
         )
         .mount("/test", routes![test_events])

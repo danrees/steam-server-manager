@@ -1,6 +1,6 @@
 use crate::install::Server;
 
-use diesel::{insert_into, prelude::*};
+use diesel::{delete, insert_into, prelude::*};
 use rocket_sync_db_pools::database;
 // use diesel::sqlite::SqliteConnection;
 //use rusqlite::{params, Connection};
@@ -40,5 +40,13 @@ impl DBStorage {
         use crate::schema::servers::dsl::*;
         let results = db.run(move |conn| servers.load::<Server>(conn)).await?;
         Ok(results)
+    }
+
+    pub async fn delete(&self, server_id: i32, db: Db) -> anyhow::Result<()> {
+        use crate::schema::servers::dsl::*;
+        db.run(move |conn| delete(servers.filter(id.eq(server_id))).execute(conn))
+            .await?;
+
+        Ok(())
     }
 }

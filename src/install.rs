@@ -16,6 +16,9 @@ pub struct Server {
     pub install_dir: String,
 }
 
+pub struct InstallQueueTx(pub flume::Sender<Server>);
+pub struct InstallQueueRx(pub flume::Receiver<Server>);
+
 impl Server {
     pub fn new(id: i32, name: &str, login: &str, install_dir: &str) -> Self {
         Server {

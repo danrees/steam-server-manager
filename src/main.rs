@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate diesel;
 
+use std::sync::Mutex;
+
 use config::Config;
 use handlers::{
     apps::{generate_apps, search_apps},
@@ -8,6 +10,8 @@ use handlers::{
     test::test_events,
     Rx, Tx,
 };
+use install::{InstallQueueRx, InstallQueueTx, Server};
+use threadpool::ThreadPool;
 //use storage::FileStorage;
 //use serde::{Deserialize, Serialize};
 
@@ -31,14 +35,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_source(config::Environment::with_prefix("STEAM"))
         .set_default("steamcmd_location", "./steamcmd.sh")?
         .set_default("steam_api_url", "https://api.steampowered.com")?
+        .set_default("workers", 4)?
         .build()?
         .try_deserialize()?;
 
+    let thread_pool = ThreadPool::new(settings.workers);
+
     let app_service = service::SteamAppsService::new(&settings.steam_api_url);
     let storage = db::DBStorage {}; //FileStorage::new("./server_data");
+    let server_service = service::ServerService::new(storage);
     let install_service =
-        service::InstallService::new(&settings.steamcmd_location, &settings.base_dir, storage);
+        service::InstallService::new(&settings.steamcmd_location, &settings.base_dir);
     let (tx, rx) = flume::unbounded::<String>();
+    let (install_tx, install_rx) = flume::unbounded::<Server>();
     fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -56,12 +65,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _r = rocket::build()
         .manage(app_service)
         .manage(settings)
-        .manage(install_service)
+        .manage(server_service)
         .manage(Rx(rx))
         .manage(Tx(tx))
+        .manage(InstallQueueRx(install_rx))
+        .manage(InstallQueueTx(install_tx))
+        .manage(Mutex::new(thread_pool))
         .attach(steam_apps::Db::fairing())
         .attach(db::Db::fairing())
         .attach(cors::CORS)
+        .attach(install_service)
         .mount("/apps", routes![search_apps, generate_apps])
         .mount(
             "/server",

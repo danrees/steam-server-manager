@@ -1,18 +1,21 @@
-use crate::{db, install::Server, service::InstallService};
+use super::{Rx, ServiceError, Tx};
+use crate::{
+    db,
+    install::{InstallQueueTx, Server},
+    service::ServerService,
+};
 use rocket::{
     response::stream::{Event, EventStream},
     serde::json::Json,
     State,
 };
 
-use super::{Rx, ServiceError, Tx};
-
 #[get("/")]
 pub async fn list_servers(
-    install_service: &State<InstallService>,
+    server_service: &State<ServerService>,
     db: db::Db,
 ) -> Result<Json<Vec<Server>>, ServiceError> {
-    install_service
+    server_service
         .list_servers(db)
         .await
         .map(Json)
@@ -23,10 +26,10 @@ pub async fn list_servers(
 pub async fn create_server(
     server: Json<Server>,
     // TODO: How can I still do this generically
-    install_service: &State<InstallService>,
+    server_service: &State<ServerService>,
     db: db::Db,
 ) -> Result<(), ServiceError> {
-    let service = install_service;
+    let service = server_service;
     service.new_server(&server, db).await?;
     Ok(())
 }
@@ -34,12 +37,12 @@ pub async fn create_server(
 #[get("/<id>")]
 pub async fn get_server(
     id: i32,
-    install_service: &State<InstallService>,
+    server_service: &State<ServerService>,
     db: db::Db,
     tx: &State<Tx>,
 ) -> Result<Json<Server>, ServiceError> {
     tx.0.send_async(String::from("got")).await.unwrap();
-    install_service
+    server_service
         .get_server(id, db)
         .await
         .map(Json)
@@ -49,24 +52,26 @@ pub async fn get_server(
 #[delete("/<id>")]
 pub async fn delete(
     id: i32,
-    install_service: &State<InstallService>,
+    server_service: &State<ServerService>,
     db: db::Db,
 ) -> Result<(), ServiceError> {
-    install_service.delete(id, db).await.map_err(|e| e.into())
+    server_service.delete(id, db).await.map_err(|e| e.into())
 }
 
 #[post("/install/<id>")]
 pub async fn install(
     id: i32,
-    install_service: &State<InstallService>,
+    server_service: &State<ServerService>,
+    install_queue: &State<InstallQueueTx>,
     db: db::Db,
-    tx: &State<Tx>,
 ) -> Result<(), ServiceError> {
-    let tx_clone = &tx.0;
+    let server = server_service.get_server(id, db).await?;
+    let queue = &install_queue.0;
 
-    let s = install_service.install(id, tx_clone, db);
-    debug!("installing {}", id);
-    s.await?;
+    queue
+        .send(server)
+        .map_err(|e| ServiceError(format!("{}", e)))?;
+
     Ok(())
 }
 

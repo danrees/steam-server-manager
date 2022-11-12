@@ -6,4 +6,5 @@ pub struct ServerConfig {
     pub steam_api_url: String,
     pub database_url: String,
     pub base_dir: String,
+    pub workers: usize,
 }

@@ -1,25 +1,21 @@
 use anyhow::Result;
 use log::debug;
+use rocket::fairing::{Fairing, Info, Kind};
 
 use crate::{
     db::{DBStorage, Db},
-    install::{self, Server},
+    handlers::Tx,
+    install::{self, InstallQueueRx, Server},
     steam_apps::{self, App},
 };
 
-pub struct InstallService {
-    client: install::Client,
+pub struct ServerService {
     storage: DBStorage,
-    base_dir: String,
 }
 
-impl InstallService {
-    pub fn new(steam_cmd: &str, base_dir: &str, storage: DBStorage) -> Self {
-        InstallService {
-            client: install::Client::new(steam_cmd),
-            base_dir: base_dir.into(),
-            storage,
-        }
+impl ServerService {
+    pub fn new(storage: DBStorage) -> Self {
+        ServerService { storage }
     }
 
     pub async fn new_server(&self, server: &Server, db: Db) -> Result<()> {
@@ -36,18 +32,54 @@ impl InstallService {
         self.storage.list(db).await
     }
 
-    pub async fn install(&self, id: i32, send: &flume::Sender<String>, db: Db) -> Result<()> {
-        let server = self.storage.load(id, db).await?;
-        self.client.install(&self.base_dir, &server, send).await?;
-        debug!("installed appliction with id: {}", id);
-        Ok(())
-    }
-
     pub async fn delete(&self, id: i32, db: Db) -> Result<()> {
         self.storage.delete(id, db).await
     }
 }
 
+pub struct InstallService {
+    client: install::Client,
+    base_dir: String,
+}
+
+#[rocket::async_trait]
+impl Fairing for InstallService {
+    fn info(&self) -> rocket::fairing::Info {
+        Info {
+            name: "Run install watcher on launch",
+            kind: Kind::Liftoff,
+        }
+    }
+    async fn on_liftoff(&self, rocket: &rocket::Rocket<rocket::Orbit>) {
+        let rx = rocket.state::<InstallQueueRx>().unwrap();
+        let output = rocket.state::<Tx>().unwrap();
+        self.run(&rx.0, &output.0).await.unwrap();
+    }
+}
+
+impl InstallService {
+    pub fn new(steam_cmd: &str, base_dir: &str) -> Self {
+        let client = install::Client::new(steam_cmd.into());
+        InstallService {
+            client: client,
+            base_dir: base_dir.into(),
+        }
+    }
+
+    pub async fn run(
+        &self,
+        rx: &flume::Receiver<Server>,
+        output: &flume::Sender<String>,
+    ) -> Result<(), anyhow::Error> {
+        for server in rx {
+            debug!("Recieved request to install {:?}", server);
+            if let Err(e) = self.client.install(&self.base_dir, &server, output).await {
+                error!("problem installing: {}", e)
+            };
+        }
+        Ok(())
+    }
+}
 pub struct SteamAppsService {
     client: steam_apps::Client,
 }

@@ -1,3 +1,5 @@
 = Steam Server Manager
 
-Meant to be an interface for steamcmd, nothing here yet as you can see
+Meant to be an interface for steamcmd, nothing here yet as you can see.
+
+Will this build locally for me.
